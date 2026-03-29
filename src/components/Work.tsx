@@ -89,45 +89,75 @@ const projects = [
 const Work = () => {
   useGSAP(() => {
     function getTranslateX() {
-      const box = document.getElementsByClassName("work-box");
-      if (!box || box.length === 0) return 0;
-      const rectLeft = document
-        .querySelector(".work-container")!
-        .getBoundingClientRect().left;
-      const rect = box[0].getBoundingClientRect();
-      const parentWidth = box[0].parentElement!.getBoundingClientRect().width;
-      let padding: number = parseInt(window.getComputedStyle(box[0]).padding) / 2;
-      return rect.width * box.length - (rectLeft + parentWidth) + padding;
+      const boxes = document.getElementsByClassName("work-box");
+      if (!boxes || boxes.length === 0) return 0;
+      const container = document.querySelector(".work-container");
+      if (!container) return 0;
+      const rectLeft = container.getBoundingClientRect().left;
+      const firstBox = boxes[0];
+      const boxWidth = firstBox.getBoundingClientRect().width;
+      const parentWidth = firstBox.parentElement!.getBoundingClientRect().width;
+      const padding = parseFloat(window.getComputedStyle(firstBox).paddingLeft) || 0;
+      const totalWidth = boxWidth * boxes.length;
+      const result = totalWidth - (rectLeft + parentWidth) + padding;
+      return Math.max(result, 0); // safety: never return negative/NaN
     }
 
-    let timeline = gsap.timeline({
-      scrollTrigger: {
-        trigger: ".work-section",
-        start: "top top",
-        end: () => `+=${getTranslateX()}`, // Calculate dynamically
-        scrub: true,
-        pin: true,
-        id: "work",
-        invalidateOnRefresh: true, // Recalculate on refresh
-      },
+    // Defer creation so layout is fully computed
+    let timeline: gsap.core.Timeline;
+
+    const initScrollTrigger = () => {
+      const translateX = getTranslateX();
+      if (translateX <= 0) {
+        // Layout not ready yet, try again
+        requestAnimationFrame(initScrollTrigger);
+        return;
+      }
+
+      timeline = gsap.timeline({
+        scrollTrigger: {
+          trigger: ".work-section",
+          start: "top top",
+          end: () => `+=${getTranslateX()}`,
+          scrub: true,
+          pin: true,
+          pinSpacing: true,
+          id: "work",
+          invalidateOnRefresh: true,
+        },
+      });
+
+      timeline.to(".work-flex", {
+        x: () => -getTranslateX(),
+        ease: "none",
+      });
+
+      // Refresh after pin spacer is created to fix stacking
+      requestAnimationFrame(() => {
+        ScrollTrigger.refresh(true);
+      });
+    };
+
+    // Wait for next frame + small delay so DOM is fully laid out
+    requestAnimationFrame(() => {
+      setTimeout(initScrollTrigger, 200);
     });
 
-    timeline.to(".work-flex", {
-      x: () => -getTranslateX(),
-      ease: "none",
-    });
+    // Additional refreshes for late-loading content
+    const refreshTimers = [
+      setTimeout(() => ScrollTrigger.refresh(true), 1500),
+      setTimeout(() => ScrollTrigger.refresh(true), 3000),
+      setTimeout(() => ScrollTrigger.refresh(true), 5000),
+    ];
 
-    // Refresh scrolltrigger after images/layout load to prevent overlapping elements
-    setTimeout(() => {
-      ScrollTrigger.refresh();
-    }, 100);
-    setTimeout(() => {
-      ScrollTrigger.refresh();
-    }, 1000);
+    const onLoad = () => ScrollTrigger.refresh(true);
+    window.addEventListener("load", onLoad);
 
     return () => {
-      timeline.kill();
+      if (timeline) timeline.kill();
       ScrollTrigger.getById("work")?.kill();
+      window.removeEventListener("load", onLoad);
+      refreshTimers.forEach(clearTimeout);
     };
   }, []);
   return (

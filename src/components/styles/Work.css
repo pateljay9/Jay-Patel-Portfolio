@@ -8,7 +8,7 @@
 }
 .work-section {
   transition: 0s;
-  height: var(--vh, 100vh);
+  height: 100vh;
   box-sizing: border-box;
   will-change: transform;
 }
