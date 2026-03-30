@@ -7,6 +7,38 @@ import {
 import "./styles/SocialIcons.css";
 import { TbNotes } from "react-icons/tb";
 import { useEffect } from "react";
+  // Calculate years and months since joining date
+  const joiningDate = new Date('2016-11-15');
+  const today = new Date();
+  const totalMonths =
+    (today.getFullYear() - joiningDate.getFullYear()) * 12 +
+    (today.getMonth() - joiningDate.getMonth());
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
+
+  const handleDownloadResume = async () => {
+    try {
+      const fileName = `jay_patel_${years}yrs_${months}mnths.pdf`;
+      const response = await fetch('/models/resume.pdf');
+      if (!response.ok) throw new Error('Failed to fetch resume');
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error('Error downloading resume:', error);
+      const link = document.createElement('a');
+      link.href = '/models/resume.pdf';
+      link.download = `jay_patel_${years}yrs_${months}mnths.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
 import HoverLinks from "./HoverLinks";
 
 const SocialIcons = () => {
@@ -80,12 +112,12 @@ const SocialIcons = () => {
           </a>
         </span>
       </div>
-      <a className="resume-button" href="#">
+      <button className="resume-button" type="button" onClick={handleDownloadResume}>
         <HoverLinks text="RESUME" />
         <span>
           <TbNotes />
         </span>
-      </a>
+      </button>
     </div>
   );
 };

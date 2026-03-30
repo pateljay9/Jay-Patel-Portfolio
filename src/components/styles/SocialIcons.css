@@ -61,6 +61,11 @@
   transition: 0.5s;
   transform-origin: left bottom;
   transform: translateX(100%) rotateZ(-90deg);
+  background: transparent;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  padding: 0;
 }
 .resume-button:hover {
   color: #fff;
